@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GLB to STL Converter</title>
+  <script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
+    import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+    import { STLExporter } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/exporters/STLExporter.js';
+
+    window.addEventListener('message', async (event) => {
+      if (!event.data || !event.data.blob || !event.data.fileName) return;
+
+      const blob = event.data.blob;
+      const arrayBuffer = await blob.arrayBuffer();
+
+      const loader = new GLTFLoader();
+      loader.parse(arrayBuffer, '', (gltf) => {
+        const scene = gltf.scene;
+
+        const exporter = new STLExporter();
+        const result = exporter.parse(scene);
+
+        const outputBlob = new Blob([result], { type: 'application/octet-stream' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(outputBlob);
+        link.download = event.data.fileName.replace(/\.glb$/, '.stl');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, console.error);
+    }, false);
+  </script>
+</head>
+<body>
+  <h2>Conversion en cours...</h2>
+</body>
+</html>
