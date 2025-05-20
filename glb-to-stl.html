@@ -8,27 +8,45 @@
     import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
     import { STLExporter } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/exporters/STLExporter.js';
 
+    // Dès que la page est prête, envoie un message à la fenêtre parent pour dire "ready"
+    window.opener?.postMessage({ ready: true }, '*');
+    console.log('Page de conversion prête, message "ready" envoyé');
+
     window.addEventListener('message', async (event) => {
-      if (!event.data || !event.data.blob || !event.data.fileName) return;
+      console.log('Message reçu dans la page de conversion:', event.data);
+      if (!event.data || !event.data.blob || !event.data.fileName) {
+        console.warn('Données manquantes dans le message');
+        return;
+      }
 
       const blob = event.data.blob;
-      const arrayBuffer = await blob.arrayBuffer();
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
 
-      const loader = new GLTFLoader();
-      loader.parse(arrayBuffer, '', (gltf) => {
-        const scene = gltf.scene;
+        const loader = new GLTFLoader();
+        loader.parse(arrayBuffer, '', (gltf) => {
+          const scene = gltf.scene;
 
-        const exporter = new STLExporter();
-        const result = exporter.parse(scene);
+          const exporter = new STLExporter();
+          const result = exporter.parse(scene);
 
-        const outputBlob = new Blob([result], { type: 'application/octet-stream' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(outputBlob);
-        link.download = event.data.fileName.replace(/\.glb$/, '.stl');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }, console.error);
+          const outputBlob = new Blob([result], { type: 'application/octet-stream' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(outputBlob);
+          link.download = event.data.fileName.replace(/\.glb$/, '.stl');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          console.log('Conversion terminée, téléchargement déclenché');
+        }, (error) => {
+          console.error('Erreur parsing GLB:', error);
+          alert('Erreur lors de la conversion du fichier GLB.');
+        });
+      } catch (e) {
+        console.error('Erreur lors de la lecture du Blob:', e);
+        alert('Erreur lors de la lecture du fichier GLB.');
+      }
     }, false);
   </script>
 </head>
